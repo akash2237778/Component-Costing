@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Quote History - PrecisionQuote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">Quote History</h1>
+            <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow transition">
+                + Create New Quote
+            </a>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <table class="min-w-full text-left">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="p-4">Quote #</th>
+                        <th class="p-4">Date</th>
+                        <th class="p-4">Customer</th>
+                        <th class="p-4">Tool Name</th>
+                        <th class="p-4">Created By</th>
+                        <th class="p-4 text-right">Total Cost</th>
+                        <th class="p-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {{ range .Quotes }}
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 font-mono text-gray-500">#{{ .ID }}</td>
+                        <td class="p-4 text-sm text-gray-600">{{ .Date.Format "02-Jan-2006" }}</td>
+                        <td class="p-4 font-bold text-slate-700">{{ .CustomerName }}</td>
+                        <td class="p-4 text-gray-700">{{ .ToolName }}</td>
+                        <td class="p-4 text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{{ .CreatedBy }}</span></td>
+                        <td class="p-4 text-right font-bold text-green-700">₹{{ printf "%.2f" .TotalCost }}</td>
+                        <td class="p-4 text-center space-x-2">
+                            <a href="/quotes/load/{{ .ID }}" class="text-blue-600 hover:text-blue-800 font-bold border border-blue-200 px-3 py-1 rounded hover:bg-blue-50 text-sm">
+                                📂 Load
+                            </a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

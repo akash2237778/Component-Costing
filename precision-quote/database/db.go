@@ -74,6 +74,31 @@ func createTables() {
 			shape TEXT DEFAULT 'Cuboid',
 			display_order INTEGER
 		);`,
+		`CREATE TABLE IF NOT EXISTS quotes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			customer_name TEXT,
+			tool_name TEXT,
+			total_cost REAL,
+			created_by TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
+		// UPDATED QUOTE ITEMS SCHEMA
+		`CREATE TABLE IF NOT EXISTS quote_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			quote_id INTEGER,
+			component_name TEXT,
+			shape TEXT,
+			material_id INTEGER,
+			length REAL,
+			width REAL,
+			height REAL,
+			manual_price REAL,
+			quantity INTEGER,
+			final_cost REAL,
+			include_squaring BOOLEAN,
+			include_ht BOOLEAN,
+			FOREIGN KEY(quote_id) REFERENCES quotes(id)
+		);`,
 	}
 
 	for _, query := range queries {
@@ -94,19 +119,12 @@ func seedData() {
 	DB.QueryRow("SELECT count(*) FROM users").Scan(&userCount)
 	if userCount == 0 {
 		data, err := ioutil.ReadFile("users.yaml")
-		if err != nil {
-			log.Println("⚠️  Warning: users.yaml not found. Skipping user seeding.")
-		} else {
+		if err == nil {
 			var config UserConfig
-			if err := yaml.Unmarshal(data, &config); err != nil {
-				log.Println("Error parsing users.yaml:", err)
-			}
+			yaml.Unmarshal(data, &config)
 			for _, u := range config.Users {
 				hash, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-				_, err := DB.Exec("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", u.Username, string(hash), u.Role)
-				if err == nil {
-					log.Printf("✅ Seeded user: %s (%s)\n", u.Username, u.Role)
-				}
+				DB.Exec("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", u.Username, string(hash), u.Role)
 			}
 		}
 	}
@@ -116,19 +134,15 @@ func seedData() {
 	DB.QueryRow("SELECT count(*) FROM materials").Scan(&matCount)
 	if matCount == 0 {
 		data, err := ioutil.ReadFile("materials.yaml")
-		if err != nil {
-			log.Println("⚠️  Warning: materials.yaml not found. Using defaults.")
-			// Fallback defaults if file missing
-			DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES ('D2 (HCHCr)', 0.00000785, 350.0)")
-		} else {
+		if err == nil {
 			var config MaterialConfig
-			if err := yaml.Unmarshal(data, &config); err != nil {
-				log.Println("Error parsing materials.yaml:", err)
-			}
+			yaml.Unmarshal(data, &config)
 			for _, m := range config.Materials {
 				DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES (?, ?, ?)", m.Name, m.Density, m.Rate)
 			}
-			log.Printf("✅ Seeded %d materials from YAML\n", len(config.Materials))
+		} else {
+			// Defaults
+			DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES ('D2 (HCHCr)', 0.00000785, 350.0)")
 		}
 	}
 
@@ -137,19 +151,15 @@ func seedData() {
 	DB.QueryRow("SELECT count(*) FROM component_templates").Scan(&compCount)
 	if compCount == 0 {
 		data, err := ioutil.ReadFile("components.yaml")
-		if err != nil {
-			log.Println("⚠️  Warning: components.yaml not found. Using defaults.")
-			DB.Exec("INSERT INTO component_templates (name, shape, display_order) VALUES ('TOP PLATE', 'Cuboid', 1)")
-		} else {
+		if err == nil {
 			var config ComponentConfig
-			if err := yaml.Unmarshal(data, &config); err != nil {
-				log.Println("Error parsing components.yaml:", err)
-			}
+			yaml.Unmarshal(data, &config)
 			stmt, _ := DB.Prepare("INSERT INTO component_templates (name, shape, display_order) VALUES (?, ?, ?)")
 			for i, c := range config.Components {
 				stmt.Exec(c.Name, c.Shape, i+1)
 			}
-			log.Printf("✅ Seeded %d components from YAML\n", len(config.Components))
+		} else {
+			DB.Exec("INSERT INTO component_templates (name, shape, display_order) VALUES ('TOP PLATE', 'Cuboid', 1)")
 		}
 	}
 }

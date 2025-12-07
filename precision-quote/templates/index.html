@@ -32,6 +32,7 @@
                 <span>⚙️ Settings</span>
             </a>
             {{ end }}
+            <a href="/history" class="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 px-3 py-1 rounded flex items-center gap-1 transition"><span>📜 History</span></a>
         </div>
 
         <div class="flex items-center gap-6">
@@ -44,15 +45,19 @@
             </div>
 
             <div class="flex items-center gap-3 border-l-2 border-gray-200 pl-4">
-                <div class="flex flex-col text-right leading-tight">
-                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Logged in as</span>
-                    <span class="text-sm font-bold text-slate-700 capitalize">{{ .User }}</span>
-                </div>
-                <a href="/logout" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-3 py-2 rounded transition flex items-center gap-1">
-                    <span class="text-lg leading-none">⏻</span> Logout
-                </a>
+                <span class="text-sm font-bold text-slate-700 capitalize">{{ .User }}</span>
+                <a href="/logout" class="text-xs text-red-500 hover:text-red-700 font-bold uppercase tracking-wide">Logout</a>
             </div>
         </div>
+    </div>
+
+    <div class="px-6 py-4 bg-gray-50 border-b flex gap-4 items-center">
+        <input type="text" id="customer_name" placeholder="Customer Name" value="{{ .CustomerName }}" class="border p-2 rounded w-64 shadow-sm" oninput="saveDraft()">
+        <input type="text" id="tool_name" placeholder="Tool Name / Description" value="{{ .ToolName }}" class="border p-2 rounded w-96 shadow-sm" oninput="saveDraft()">
+        
+        <span class="text-xs text-green-600 font-bold transition-opacity duration-500 opacity-0" id="save-indicator">✓ Draft Saved</span>
+        
+        <input type="hidden" id="is-load-mode" value="{{ .IsLoadMode }}">
     </div>
 
     <div class="flex-grow p-4 overflow-hidden">
@@ -81,10 +86,10 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200" id="rows-body">
                     {{ range .Components }}
-                    <tr class="hover:bg-gray-50 transition">
+                    <tr class="hover:bg-gray-50 transition item-row">
                         
                         <td class="p-2 font-medium text-gray-700 border-r shadow-sm">
-                            {{ .Name }}
+                            <input type="text" class="row-name bg-transparent font-medium w-full" value="{{ .Name }}" readonly>
                             <form id="row-form-{{ .ID }}">
                                 <input type="hidden" name="component_id" value="{{ .ID }}">
                                 <input type="hidden" name="shape" value="{{ .Shape }}">
@@ -94,94 +99,81 @@
                         {{ if eq .Shape "Fixed" }}
                             <td colspan="4" class="p-1 border-r bg-gray-50 text-center text-gray-400 text-xs italic">Standard Item</td>
                             <td colspan="3" class="p-1 border-r bg-white">
-                                <input type="number" step="1" name="manual_price" placeholder="Unit Price ₹" form="row-form-{{ .ID }}" 
-                                       class="w-full border-2 border-blue-200 rounded p-1 text-center font-bold text-blue-800"
+                                <input type="number" step="1" name="manual_price" placeholder="Unit Price ₹" value="{{ if .ManualPrice }}{{ .ManualPrice }}{{ end }}" form="row-form-{{ .ID }}" 
+                                       class="row-manual-price w-full border-2 border-blue-200 rounded p-1 text-center font-bold text-blue-800"
+                                       oninput="saveDraft()"
                                        hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
                             </td>
                             <td class="bg-gray-50"></td> <td class="bg-gray-50"></td> <td class="bg-gray-50"></td> <td class="bg-gray-50 border-r"></td>
-
                         {{ else }}
                             <td class="p-1 border-r">
-                                <select name="material_id" form="row-form-{{ .ID }}"
-                                        hx-post="/calculate" hx-trigger="change" 
-                                        hx-include="#row-form-{{ .ID }}" 
-                                        hx-target="#cost-val-{{ .ID }}"
-                                        class="w-full border rounded p-1 text-xs bg-white">
-                                    <option value="0" selected>Select...</option>
+                                <select name="material_id" form="row-form-{{ .ID }}" class="row-material w-full border rounded p-1 text-xs bg-white"
+                                        onchange="saveDraft()"
+                                        hx-post="/calculate" hx-trigger="change" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                    <option value="0">Select...</option>
+                                    {{ $currMat := .MaterialID }}
                                     {{ range $.Materials }}
-                                    <option value="{{ .ID }}">{{ .Name }}</option>
+                                        <option value="{{ .ID }}" {{ if eq .ID $currMat }}selected{{ end }}>{{ .Name }}</option>
                                     {{ end }}
                                 </select>
                             </td>
-
-                            <td class="p-1"><input type="number" step="0.1" name="length" placeholder="L" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            <td class="p-1"><input type="number" name="length" placeholder="L" value="{{ if .Length }}{{ .Length }}{{ end }}" class="row-length w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            <td class="p-1"><input type="number" name="width" placeholder="W" value="{{ if .Width }}{{ .Width }}{{ end }}" class="row-width w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            <td class="p-1 border-r"><input type="number" name="height" placeholder="H" value="{{ if .Height }}{{ .Height }}{{ end }}" class="row-height w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
                             
-                            <td class="p-1"><input type="number" step="0.1" name="width" placeholder="{{ if eq .Shape "Cylindrical" }}Dia{{ else }}W{{ end }}" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
-                            
-                            <td class="p-1 border-r">
-                                {{ if eq .Shape "Cylindrical" }}
-                                    <input type="hidden" name="height" value="0" form="row-form-{{ .ID }}">
-                                    <div class="text-center text-gray-300">-</div>
-                                {{ else }}
-                                    <input type="number" step="0.1" name="height" placeholder="H" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                           hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                                {{ end }}
-                            </td>
-
                             <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-                                <div id="weight-div-{{ .ID }}">-</div>
+                                <div id="weight-div-{{ .ID }}">{{ if .Weight }}{{ printf "%.2f" .Weight }} kg{{ else }}-{{ end }}</div>
                             </td>
                             <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-                                <div id="area-div-{{ .ID }}">-</div>
+                                <div id="area-div-{{ .ID }}">{{ if .Area }}{{ printf "%.1f" .Area }} sq"{{ else }}-{{ end }}</div>
                             </td>
                             
                             <td class="p-2 text-center bg-orange-50 border-r align-middle">
-                                <div class="flex flex-col items-center justify-center">
-                                    <input type="checkbox" name="include_squaring" value="true" checked 
-                                           form="row-form-{{ .ID }}"
-                                           hx-post="/calculate" hx-trigger="change" 
-                                           hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"
-                                           class="mb-1 w-4 h-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer">
-                                    <div id="pre-mach-div-{{ .ID }}" class="text-orange-800 font-bold font-mono text-xs">-</div>
+                                <div class="flex flex-col items-center">
+                                    <input type="checkbox" name="include_squaring" value="true" {{ if .IncludeSquaring }}checked{{ end }} 
+                                           onchange="saveDraft()" form="row-form-{{ .ID }}" 
+                                           hx-post="/calculate" hx-trigger="change" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                    <div id="pre-mach-div-{{ .ID }}" class="text-xs font-bold text-orange-800">
+                                        {{ if .PreMachCost }}₹{{ printf "%.0f" .PreMachCost }}{{ else }}-{{ end }}
+                                    </div>
                                 </div>
                             </td>
 
                             <td class="p-2 text-center bg-red-50 border-r align-middle">
-                                <div class="flex flex-col items-center justify-center">
-                                    <input type="checkbox" name="include_ht" value="true" checked 
-                                           form="row-form-{{ .ID }}"
-                                           hx-post="/calculate" hx-trigger="change" 
-                                           hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"
-                                           class="mb-1 w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300 rounded cursor-pointer">
-                                    <div id="ht-div-{{ .ID }}" class="text-red-800 font-bold font-mono text-xs">-</div>
+                                <div class="flex flex-col items-center">
+                                    <input type="checkbox" name="include_ht" value="true" {{ if .IncludeHT }}checked{{ end }} 
+                                           onchange="saveDraft()" form="row-form-{{ .ID }}" 
+                                           hx-post="/calculate" hx-trigger="change" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                    <div id="ht-div-{{ .ID }}" class="text-xs font-bold text-red-800">
+                                        {{ if .HTCost }}₹{{ printf "%.0f" .HTCost }}{{ else }}-{{ end }}
+                                    </div>
                                 </div>
                             </td>
 
-                            <td class="p-1 align-top bg-white">
-                                <input type="number" step="0.5" name="cnc_hours" placeholder="Hrs" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                                <div id="cnc-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
+                            <td class="p-1 bg-white">
+                                <input type="number" name="cnc_hours" placeholder="Hrs" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                <div id="cnc-cost-div-{{ .ID }}" class="text-xs text-center text-gray-400 font-mono">-</div>
                             </td>
-                            <td class="p-1 align-top bg-white">
-                                <input type="number" step="1" name="wirecut_len" placeholder="mm" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                                <div id="wire-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
+                            <td class="p-1 bg-white">
+                                <input type="number" name="wirecut_len" placeholder="mm" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                <div id="wire-cost-div-{{ .ID }}" class="text-xs text-center text-gray-400 font-mono">-</div>
                             </td>
-                            <td class="p-1 align-top border-r bg-white">
-                                <input type="number" step="100" name="drilling_cost" placeholder="₹" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                            <td class="p-1 border-r bg-white">
+                                <input type="number" name="drilling_cost" placeholder="₹" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
                             </td>
                         {{ end }}
 
                         <td class="p-1 border-r bg-white">
-                            <input type="number" name="quantity" value="1" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center font-bold text-blue-600"
+                            <input type="number" name="quantity" value="{{ if .Quantity }}{{ .Quantity }}{{ else }}1{{ end }}" 
+                                   class="row-qty w-full border rounded p-1 text-center font-bold text-blue-600" 
+                                   oninput="saveDraft()" form="row-form-{{ .ID }}" 
                                    hx-post="/calculate" hx-trigger="change, input delay:300ms" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
                         </td>
 
                         <td class="p-2 text-right font-bold text-green-700 bg-green-50 shadow-inner flex flex-col justify-between h-full min-h-[60px]">
-                            <span id="cost-val-{{ .ID }}" class="row-total block mb-1">₹0.00</span>
+                            <span id="cost-val-{{ .ID }}" class="row-total block mb-1">
+                                {{ if .RowCost }}₹{{ printf "%.2f" .RowCost }}{{ else }}₹0.00{{ end }}
+                            </span>
                             <button hx-delete="/component/remove" hx-target="closest tr" hx-swap="outerHTML" 
                                     class="text-[10px] text-red-400 hover:text-red-600 uppercase tracking-wider font-semibold self-end">
                                 Remove ✕
@@ -193,10 +185,15 @@
                 
                 <tfoot class="bg-slate-800 text-white shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
                     <tr>
-                        <td colspan="13" class="p-4 bg-slate-800 border-t-2 border-slate-600">
+                        <td colspan="10" class="p-4 bg-slate-800 border-t-2 border-slate-600">
                              <button hx-get="/component/add" hx-target="#rows-body" hx-swap="beforeend"
                                      class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded shadow flex items-center gap-2 text-sm font-bold">
                                 <span>➕ Add Custom Component</span>
+                            </button>
+                        </td>
+                        <td colspan="3" class="p-4 text-right bg-slate-800 border-t-2 border-slate-600">
+                            <button onclick="saveQuote()" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded shadow text-lg font-bold w-full transition transform hover:scale-105">
+                                💾 Save Quote
                             </button>
                         </td>
                         <td class="p-4 text-right font-bold text-2xl text-green-400 border-t-2 border-slate-600 bg-slate-900 min-w-[150px]">
@@ -209,19 +206,182 @@
     </div>
 
     <script>
-        function updateGrandTotal() {
-            let total = 0.0;
-            const rows = document.querySelectorAll('.row-total');
-            rows.forEach(row => {
-                const valStr = row.innerText.replace(/[^\d.-]/g, '');
-                const val = parseFloat(valStr);
-                if (!isNaN(val)) total += val;
+        const DRAFT_KEY = "precision_quote_draft";
+
+        // 1. SAVE DRAFT
+        function saveDraft() {
+            // STOP if we loaded a quote from history (IsLoadMode = true)
+            // We do NOT want to overwrite the "new quote" draft with an old historical quote
+            if (document.getElementById('is-load-mode').value === "true") return;
+
+            const draft = {
+                customer: document.getElementById('customer_name').value,
+                tool: document.getElementById('tool_name').value,
+                rows: {}
+            };
+
+            // Select inputs by form attribute to catch them all (they are outside form tags)
+            const inputs = document.querySelectorAll('input[form^="row-form-"], select[form^="row-form-"]');
+            
+            inputs.forEach(input => {
+                if (input.name && input.form) {
+                    const key = input.form.id + "__" + input.name;
+                    if(input.type === 'checkbox') {
+                        draft.rows[key] = input.checked;
+                    } else {
+                        draft.rows[key] = input.value;
+                    }
+                }
             });
-            const formatted = total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
-            document.getElementById('grand-total-display').innerText = formatted;
+
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            
+            const indicator = document.getElementById('save-indicator');
+            indicator.style.opacity = '1';
+            setTimeout(() => indicator.style.opacity = '0', 800);
         }
 
-        document.addEventListener("DOMContentLoaded", updateGrandTotal);
+        // 2. RESTORE DRAFT
+        function restoreDraft() {
+            // Stop if in Load Mode
+            if (document.getElementById('is-load-mode').value === "true") return;
+
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return;
+
+            const draft = JSON.parse(raw);
+            if(draft.customer) document.getElementById('customer_name').value = draft.customer;
+            if(draft.tool) document.getElementById('tool_name').value = draft.tool;
+
+            Object.keys(draft.rows).forEach(key => {
+                const parts = key.split("__");
+                if(parts.length < 2) return;
+                
+                const formId = parts[0];   
+                const inputName = parts[1];
+
+                // Robust Selector: Find input linked to formId
+                const selector = `[form="${formId}"][name="${inputName}"]`;
+                const input = document.querySelector(selector);
+                
+                if (input) {
+                    if(input.type === 'checkbox') {
+                        input.checked = draft.rows[key];
+                    } else {
+                        input.value = draft.rows[key];
+                    }
+                }
+            });
+
+            // Trigger Recalculation for rows that have data
+            const uniqueForms = new Set();
+            Object.keys(draft.rows).forEach(key => uniqueForms.add(key.split("__")[0]));
+            
+            uniqueForms.forEach(formId => {
+                // Try to find a 'length' input or 'manual_price' input to trigger update
+                const triggerSelector = `[form="${formId}"][name="length"], [form="${formId}"][name="manual_price"]`;
+                const trigger = document.querySelector(triggerSelector);
+                if(trigger && trigger.value) {
+                    htmx.trigger(trigger, 'change');
+                }
+            });
+        }
+
+        // 3. SUM TOTAL
+        function updateGrandTotal() {
+            let total = 0.0;
+            document.querySelectorAll('.row-total').forEach(row => {
+                const val = parseFloat(row.innerText.replace(/[^\d.-]/g, ''));
+                if (!isNaN(val)) total += val;
+            });
+            document.getElementById('grand-total-display').innerText = total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+        }
+
+        // 4. SUBMIT TO SERVER
+        async function saveQuote() {
+            const customer = document.getElementById('customer_name').value;
+            const tool = document.getElementById('tool_name').value;
+            
+            if(!customer || !tool) {
+                alert("Please enter Customer Name and Tool Name");
+                return;
+            }
+
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                // Scrape data from the row visually
+                const name = row.querySelector('.row-name').value;
+                const costText = row.querySelector('.row-total').innerText.replace(/[^\d.-]/g, '');
+                
+                // Only save active rows
+                if (parseFloat(costText) > 0) {
+                    // We need to fetch specific inputs carefully
+                    // Using querySelector inside row is risky because inputs are linked via ID, not nesting
+                    // BUT for gathering data for save, finding closest input inside 'td' works because they are visually nested
+                    
+                    const formIdInput = row.querySelector('input[name="component_id"]');
+                    if(!formIdInput) return;
+                    const formId = formIdInput.form.id;
+
+                    // Helper to get value by name from the linked form
+                    const getVal = (name) => {
+                        const el = document.querySelector(`[form="${formId}"][name="${name}"]`);
+                        return el ? el.value : null;
+                    };
+                    const getCheck = (name) => {
+                        const el = document.querySelector(`[form="${formId}"][name="${name}"]`);
+                        return el ? el.checked : false;
+                    };
+
+                    items.push({
+                        component_name: name,
+                        shape: getVal('shape') || "Cuboid",
+                        material_id: parseInt(getVal('material_id')) || 0,
+                        length: parseFloat(getVal('length')) || 0,
+                        width: parseFloat(getVal('width')) || 0,
+                        height: parseFloat(getVal('height')) || 0,
+                        manual_price: parseFloat(getVal('manual_price')) || 0,
+                        quantity: parseInt(getVal('quantity')) || 1,
+                        row_cost: parseFloat(costText),
+                        include_squaring: getCheck('include_squaring'),
+                        include_ht: getCheck('include_ht')
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert("No items to save (Total is 0)!");
+                return;
+            }
+
+            const grandTotalText = document.getElementById('grand-total-display').innerText.replace(/[^\d.-]/g, '');
+
+            const payload = {
+                customer_name: customer,
+                tool_name: tool,
+                grand_total: parseFloat(grandTotalText),
+                items: items
+            };
+
+            const res = await fetch('/quotes/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                localStorage.removeItem(DRAFT_KEY);
+                window.location.href = "/history";
+            } else {
+                alert("Failed to save");
+            }
+        }
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            setTimeout(restoreDraft, 150);
+            updateGrandTotal();
+        });
         document.body.addEventListener('htmx:afterSwap', updateGrandTotal);
     </script>
 </body>
