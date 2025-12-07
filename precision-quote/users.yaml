@@ -1,0 +1,12 @@
+users:
+  - username: "admin"
+    password: "password123"
+    role: "ADMIN"
+  
+  - username: "operator"
+    password: "op1"
+    role: "OPERATOR"
+
+  - username: "manager"
+    password: "securepass"
+    role: "OPERATOR"

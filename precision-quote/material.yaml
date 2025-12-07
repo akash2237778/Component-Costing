@@ -1,0 +1,20 @@
+materials:
+  - name: "D2 (HCHCr)"
+    density: 0.00000785
+    rate: 350.0
+
+  - name: "D3"
+    density: 0.00000785
+    rate: 250.0
+
+  - name: "Mild Steel (MS)"
+    density: 0.00000785
+    rate: 70.0
+
+  - name: "EN31"
+    density: 0.00000785
+    rate: 120.0
+
+  - name: "Aluminum"
+    density: 0.00000270
+    rate: 400.0

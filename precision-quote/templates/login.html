@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login - PrecisionQuote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-800 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-2xl w-96">
+        <h1 class="text-2xl font-bold text-center text-slate-800 mb-6">PrecisionQuote</h1>
+        
+        <form action="/login" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700">Username</label>
+                <input type="text" name="username" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700">Password</label>
+                <input type="password" name="password" required class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            {{ if .Error }}
+            <div class="text-red-500 text-sm text-center font-bold">{{ .Error }}</div>
+            {{ end }}
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">
+                Login
+            </button>
+        </form>
+    </div>
+</body>
+</html>
