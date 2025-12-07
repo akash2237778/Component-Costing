@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Settings - PrecisionQuote</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen">
+
+    <div class="p-4 bg-white shadow flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold text-slate-800">System Settings</h1>
+        <a href="/" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded font-medium transition">
+            ← Back to Quoter
+        </a>
+    </div>
+
+    <div class="max-w-5xl mx-auto grid gap-8 p-4">
+
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-blue-600">
+            <h2 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">🏭 Shop Floor Rates</h2>
+            
+            <form id="global-form" hx-post="/settings/global" hx-swap="none" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="flex flex-col">
+                    <label class="text-sm font-bold text-gray-500 mb-1">CNC VMC (₹/Hr)</label>
+                    <input type="number" step="0.1" name="cnc_rate" value="{{ .Settings.CNCRate }}" 
+                           oninput="checkDirty('global-form')"
+                           class="border p-2 rounded text-lg font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="flex flex-col">
+                    <label class="text-sm font-bold text-gray-500 mb-1">Wire Cut (₹/mm)</label>
+                    <input type="number" step="0.01" name="wirecut_rate" value="{{ .Settings.WireCutRate }}" 
+                           oninput="checkDirty('global-form')"
+                           class="border p-2 rounded text-lg font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="flex flex-col">
+                    <label class="text-sm font-bold text-gray-500 mb-1">Squaring (₹/Sq Inch)</label>
+                    <input type="number" step="0.1" name="squaring_rate" value="{{ .Settings.SquaringRate }}" 
+                           oninput="checkDirty('global-form')"
+                           class="border p-2 rounded text-lg font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="md:col-span-3 text-right mt-2">
+                    <button type="submit" disabled id="global-btn"
+                            class="bg-blue-600 text-white font-bold py-2 px-6 rounded shadow transition opacity-50 cursor-not-allowed">
+                        Save Global Rates
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-green-600">
+            <h2 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">🔩 Material Master List</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs">
+                            <th class="p-3 border-b w-1/3">Material Name</th>
+                            <th class="p-3 border-b w-1/4">Density (Kg/inch³)</th>
+                            <th class="p-3 border-b w-1/4">Rate (₹/Kg)</th>
+                            <th class="p-3 border-b text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="material-list">
+                        {{ range .Materials }}
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            
+                            <td class="p-3 font-medium text-gray-800">
+                                <form id="mat-form-{{ .ID }}" hx-post="/settings/material/update" hx-swap="none">
+                                    <input type="hidden" name="id" value="{{ .ID }}">
+                                </form>
+
+                                <input type="text" name="name" value="{{ .Name }}" form="mat-form-{{ .ID }}"
+                                       oninput="checkDirty('mat-form-{{ .ID }}')"
+                                       class="border rounded p-1 w-full bg-transparent hover:bg-white focus:bg-white transition">
+                            </td>
+                            
+                            <td class="p-3">
+                                <input type="number" step="0.0001" name="density" value="{{ .Density }}" form="mat-form-{{ .ID }}"
+                                       oninput="checkDirty('mat-form-{{ .ID }}')"
+                                       class="border rounded p-1 w-24 text-gray-600 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500">
+                            </td>
+                            
+                            <td class="p-3">
+                                <input type="number" step="0.1" name="rate" value="{{ .Rate }}" form="mat-form-{{ .ID }}"
+                                       oninput="checkDirty('mat-form-{{ .ID }}')"
+                                       class="border rounded p-1 w-24 font-bold text-green-700 bg-white focus:ring-2 focus:ring-green-500">
+                            </td>
+                            
+                            <td class="p-3 text-right">
+                                <button type="submit" disabled form="mat-form-{{ .ID }}"
+                                        class="text-xs bg-slate-200 text-slate-800 px-3 py-1 rounded opacity-50 cursor-not-allowed transition">
+                                    Update
+                                </button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 class="text-sm font-bold text-green-800 mb-3 uppercase tracking-wide">➕ Add New Metal</h3>
+                <form hx-post="/settings/material/add" hx-target="body">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Name</label>
+                            <input type="text" name="name" required placeholder="Material Name" 
+                                   class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Density</label>
+                            <input type="number" step="0.0001" name="density" required placeholder="0.1286" 
+                                   class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Rate</label>
+                            <input type="number" step="0.1" name="rate" required placeholder="350.0" 
+                                   class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+                                Add Material
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+   <script>
+        // 1. DIRTY STATE CHECKER
+        function checkDirty(formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+
+            // Find button (handle both inside form and outside with form attribute)
+            let btn = form.querySelector("button");
+            if(!btn) btn = document.querySelector(`button[form="${formId}"]`);
+            if (!btn) return;
+
+            // Find all inputs (inside and linked)
+            let inputs = Array.from(form.querySelectorAll("input"));
+            const externalInputs = document.querySelectorAll(`input[form="${formId}"]`);
+            inputs = inputs.concat(Array.from(externalInputs));
+
+            let isDirty = false;
+
+            inputs.forEach(input => {
+                if (input.type === 'hidden') return; 
+                // Compare current value vs the server's original value (defaultValue)
+                if (input.value != input.defaultValue) {
+                    isDirty = true;
+                }
+            });
+
+            if (isDirty) {
+                // Enable Button
+                btn.disabled = false;
+                btn.classList.remove("opacity-50", "cursor-not-allowed");
+                btn.classList.add("hover:bg-blue-700", "hover:bg-slate-300");
+                if(btn.id === 'global-btn') btn.classList.add("bg-blue-600", "text-white");
+            } else {
+                // Disable Button
+                btn.disabled = true;
+                btn.classList.add("opacity-50", "cursor-not-allowed");
+                btn.classList.remove("hover:bg-blue-700", "hover:bg-slate-300");
+            }
+        }
+
+        // 2. POST-SAVE RESET LOGIC
+        document.body.addEventListener('htmx:afterRequest', function(evt) {
+            const form = evt.detail.elt;
+            if(form.tagName !== 'FORM') return;
+            
+            // Check if request was successful (200 OK)
+            if(!evt.detail.successful) return;
+
+            const formId = form.id;
+            let btn = document.querySelector(`button[form="${formId}"]`) || form.querySelector("button");
+
+            // Only run for Update buttons (ignore "Add Material")
+            if(btn && !btn.innerText.includes("Add Material")) {
+                
+                // A. Update the 'defaultValue' immediately to match current input
+                // This tells the browser: "The current value is now the new saved baseline"
+                let inputs = Array.from(form.querySelectorAll("input"));
+                const externalInputs = document.querySelectorAll(`input[form="${formId}"]`);
+                inputs = inputs.concat(Array.from(externalInputs));
+                inputs.forEach(input => input.defaultValue = input.value);
+
+                // B. Force Disable the button IMMEDIATELY
+                btn.disabled = true;
+                btn.classList.add("opacity-50", "cursor-not-allowed");
+                btn.classList.remove("hover:bg-blue-700", "hover:bg-slate-300");
+
+                // C. Visual Feedback ("Saved!")
+                const originalText = btn.innerText; // e.g., "Update"
+                btn.innerText = "Saved!";
+                btn.classList.add('bg-green-500', 'text-white');
+                
+                // Revert text after 1.5 seconds (Button remains disabled)
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('bg-green-500', 'text-white');
+                    // Double check dirty state just in case user typed while it was saying "Saved!"
+                    checkDirty(formId); 
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
