@@ -26,12 +26,13 @@ func createTables() {
 			id INTEGER PRIMARY KEY CHECK (id = 1),
 			cnc_rate_hourly REAL DEFAULT 500.0,
 			wirecut_rate_mm REAL DEFAULT 0.25,
-			squaring_rate_sqinch REAL DEFAULT 4.0
+			squaring_rate_sqinch REAL DEFAULT 4.0,
+			ht_rate REAL DEFAULT 40.0
 		);`,
 		`CREATE TABLE IF NOT EXISTS materials (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
-			density_factor REAL, -- kg per cubic inch
+			density_factor REAL, 
 			rate_per_kg REAL
 		);`,
 		`CREATE TABLE IF NOT EXISTS component_templates (
@@ -50,12 +51,11 @@ func createTables() {
 }
 
 func seedData() {
-	// 1. Seed Settings (Your specific rates)
-	DB.Exec("INSERT OR IGNORE INTO settings (id, cnc_rate_hourly, wirecut_rate_mm, squaring_rate_sqinch) VALUES (1, 500.0, 0.25, 4.0)")
+	// 1. Seed Settings (Now includes ht_rate)
+	DB.Exec(`INSERT OR IGNORE INTO settings (id, cnc_rate_hourly, wirecut_rate_mm, squaring_rate_sqinch, ht_rate) 
+             VALUES (1, 500.0, 0.25, 4.0, 40.0)`)
 
 	// 2. Seed Materials
-	// Note: 1 inch³ steel ≈ 0.128 kg. D2 is slightly denser.
-	// Rate per KG is an estimate, you can update this in DB later.
 	var matCount int
 	DB.QueryRow("SELECT count(*) FROM materials").Scan(&matCount)
 	if matCount == 0 {
@@ -65,7 +65,7 @@ func seedData() {
 		DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES ('EN31', 0.128, 120.0)")
 	}
 
-	// 3. Seed Components (Your partial list)
+	// 3. Seed Components
 	var compCount int
 	DB.QueryRow("SELECT count(*) FROM component_templates").Scan(&compCount)
 	if compCount == 0 {

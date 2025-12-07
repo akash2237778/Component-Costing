@@ -19,7 +19,7 @@
         <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-blue-600">
             <h2 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">🏭 Shop Floor Rates</h2>
             
-            <form id="global-form" hx-post="/settings/global" hx-swap="none" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <form id="global-form" hx-post="/settings/global" hx-swap="none" class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 
                 <div class="flex flex-col">
                     <label class="text-sm font-bold text-gray-500 mb-1">CNC VMC (₹/Hr)</label>
@@ -36,13 +36,20 @@
                 </div>
 
                 <div class="flex flex-col">
-                    <label class="text-sm font-bold text-gray-500 mb-1">Squaring (₹/Sq Inch)</label>
+                    <label class="text-sm font-bold text-gray-500 mb-1">Squaring (₹/Sq")</label>
                     <input type="number" step="0.1" name="squaring_rate" value="{{ .Settings.SquaringRate }}" 
                            oninput="checkDirty('global-form')"
                            class="border p-2 rounded text-lg font-bold text-blue-600 focus:ring-2 focus:ring-blue-500">
                 </div>
 
-                <div class="md:col-span-3 text-right mt-2">
+                <div class="flex flex-col">
+                    <label class="text-sm font-bold text-gray-500 mb-1">Heat Treat (₹/Kg)</label>
+                    <input type="number" step="0.1" name="ht_rate" value="{{ .Settings.HTRate }}" 
+                           oninput="checkDirty('global-form')"
+                           class="border p-2 rounded text-lg font-bold text-red-600 focus:ring-2 focus:ring-red-500">
+                </div>
+
+                <div class="md:col-span-4 text-right mt-2">
                     <button type="submit" disabled id="global-btn"
                             class="bg-blue-600 text-white font-bold py-2 px-6 rounded shadow transition opacity-50 cursor-not-allowed">
                         Save Global Rates
@@ -67,7 +74,6 @@
                     <tbody id="material-list">
                         {{ range .Materials }}
                         <tr class="border-b hover:bg-gray-50 transition">
-                            
                             <td class="p-3 font-medium text-gray-800">
                                 <form id="mat-form-{{ .ID }}" hx-post="/settings/material/update" hx-swap="none">
                                     <input type="hidden" name="id" value="{{ .ID }}">
@@ -132,84 +138,99 @@
         </div>
     </div>
 
-   <script>
-        // 1. DIRTY STATE CHECKER
+    <script>
+        // 1. INPUT LISTENER
         function checkDirty(formId) {
             const form = document.getElementById(formId);
             if (!form) return;
 
-            // Find button (handle both inside form and outside with form attribute)
-            let btn = form.querySelector("button");
-            if(!btn) btn = document.querySelector(`button[form="${formId}"]`);
+            // Find button
+            let btn = form.querySelector("button") || document.querySelector(`button[form="${formId}"]`);
             if (!btn) return;
 
-            // Find all inputs (inside and linked)
-            let inputs = Array.from(form.querySelectorAll("input"));
-            const externalInputs = document.querySelectorAll(`input[form="${formId}"]`);
-            inputs = inputs.concat(Array.from(externalInputs));
+            // Gather inputs
+            const internalInputs = Array.from(form.querySelectorAll("input"));
+            const externalInputs = Array.from(document.querySelectorAll(`input[form="${formId}"]`));
+            const allInputs = internalInputs.concat(externalInputs);
 
             let isDirty = false;
 
-            inputs.forEach(input => {
-                if (input.type === 'hidden') return; 
-                // Compare current value vs the server's original value (defaultValue)
+            for (const input of allInputs) {
+                if (input.type === 'hidden') continue;
                 if (input.value != input.defaultValue) {
                     isDirty = true;
+                    break;
                 }
-            });
+            }
 
+            // TOGGLE STATE & COLORS
             if (isDirty) {
-                // Enable Button
                 btn.disabled = false;
                 btn.classList.remove("opacity-50", "cursor-not-allowed");
-                btn.classList.add("hover:bg-blue-700", "hover:bg-slate-300");
-                if(btn.id === 'global-btn') btn.classList.add("bg-blue-600", "text-white");
+                
+                // Color Logic
+                if (btn.id === 'global-btn') {
+                    btn.classList.add("hover:bg-blue-700");
+                } else {
+                    btn.classList.add("hover:bg-slate-300");
+                }
             } else {
-                // Disable Button
                 btn.disabled = true;
                 btn.classList.add("opacity-50", "cursor-not-allowed");
                 btn.classList.remove("hover:bg-blue-700", "hover:bg-slate-300");
             }
         }
 
-        // 2. POST-SAVE RESET LOGIC
+        // 2. SAVE SUCCESS HANDLER
         document.body.addEventListener('htmx:afterRequest', function(evt) {
-            const form = evt.detail.elt;
-            if(form.tagName !== 'FORM') return;
-            
-            // Check if request was successful (200 OK)
-            if(!evt.detail.successful) return;
+            if (evt.detail.elt.tagName !== 'FORM') return;
+            if (!evt.detail.successful) return;
 
+            const form = evt.detail.elt;
             const formId = form.id;
             let btn = document.querySelector(`button[form="${formId}"]`) || form.querySelector("button");
 
-            // Only run for Update buttons (ignore "Add Material")
-            if(btn && !btn.innerText.includes("Add Material")) {
+            if (btn && !btn.innerText.includes("Add Material")) {
                 
-                // A. Update the 'defaultValue' immediately to match current input
-                // This tells the browser: "The current value is now the new saved baseline"
-                let inputs = Array.from(form.querySelectorAll("input"));
-                const externalInputs = document.querySelectorAll(`input[form="${formId}"]`);
-                inputs = inputs.concat(Array.from(externalInputs));
-                inputs.forEach(input => input.defaultValue = input.value);
+                // A. UPDATE BASELINE
+                const internalInputs = Array.from(form.querySelectorAll("input"));
+                const externalInputs = Array.from(document.querySelectorAll(`input[form="${formId}"]`));
+                const allInputs = internalInputs.concat(externalInputs);
+                
+                allInputs.forEach(input => {
+                    input.defaultValue = input.value;
+                });
 
-                // B. Force Disable the button IMMEDIATELY
+                // B. FORCE DISABLE
                 btn.disabled = true;
                 btn.classList.add("opacity-50", "cursor-not-allowed");
                 btn.classList.remove("hover:bg-blue-700", "hover:bg-slate-300");
 
-                // C. Visual Feedback ("Saved!")
-                const originalText = btn.innerText; // e.g., "Update"
-                btn.innerText = "Saved!";
-                btn.classList.add('bg-green-500', 'text-white');
+                // C. VISUAL FEEDBACK
+                const originalText = btn.dataset.originalText || btn.innerText;
+                if(!btn.dataset.originalText) btn.dataset.originalText = originalText;
                 
-                // Revert text after 1.5 seconds (Button remains disabled)
+                btn.innerText = "Saved!";
+                
+                // Swap Colors temporarily
+                if (btn.id === 'global-btn') {
+                    btn.classList.remove("bg-blue-600");
+                } else {
+                    btn.classList.remove("bg-slate-200", "text-slate-800");
+                }
+                btn.classList.add('bg-green-500', 'text-white');
+
+                // D. REVERT AFTER 2 SECONDS
                 setTimeout(() => {
                     btn.innerText = originalText;
                     btn.classList.remove('bg-green-500', 'text-white');
-                    // Double check dirty state just in case user typed while it was saying "Saved!"
-                    checkDirty(formId); 
-                }, 1500);
+
+                    if (btn.id === 'global-btn') {
+                        btn.classList.add("bg-blue-600");
+                    } else {
+                        btn.classList.add("bg-slate-200", "text-slate-800");
+                    }
+                }, 2000);
             }
         });
     </script>
