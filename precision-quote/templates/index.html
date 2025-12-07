@@ -12,8 +12,6 @@
         thead th:first-child { background-color: #1e293b; z-index: 20; }
         tfoot th:first-child, tfoot td:first-child { position: sticky; left: 0; z-index: 20; }
         tfoot { position: sticky; bottom: 0; z-index: 20; }
-        
-        /* New Animation for added rows */
         .slide-in { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -43,9 +41,9 @@
                     <tr>
                         <th class="p-3 text-left w-48 border-r border-slate-600">Component</th>
                         <th class="p-3 text-left w-32 border-r border-slate-600">Material</th>
-                        <th class="p-3 text-center w-16">L (in)</th>
-                        <th class="p-3 text-center w-16">W (in)</th>
-                        <th class="p-3 text-center w-16 border-r border-slate-600">H (in)</th>
+                        <th class="p-3 text-center w-16">L (mm)</th>
+                        <th class="p-3 text-center w-16">W (mm)</th>
+                        <th class="p-3 text-center w-16 border-r border-slate-600">H (mm)</th>
                         
                         <th class="p-3 text-center bg-yellow-600 w-20 text-white font-bold border-r border-yellow-700">Wt (kg)</th>
                         <th class="p-3 text-center bg-yellow-600 w-20 text-white font-bold border-r border-yellow-700">Sq Area</th>
@@ -63,69 +61,104 @@
                 <tbody class="divide-y divide-gray-200" id="rows-body">
                     {{ range .Components }}
                     <tr class="hover:bg-gray-50 transition">
+                        
                         <td class="p-2 font-medium text-gray-700 border-r shadow-sm">
                             {{ .Name }}
                             <form id="row-form-{{ .ID }}">
                                 <input type="hidden" name="component_id" value="{{ .ID }}">
+                                <input type="hidden" name="shape" value="{{ .Shape }}">
                             </form>
                         </td>
                         
-                        <td class="p-1 border-r">
-                            <select name="material_id" form="row-form-{{ .ID }}"
-                                    hx-post="/calculate" hx-trigger="change" 
-                                    hx-include="#row-form-{{ .ID }}" 
-                                    hx-target="#cost-val-{{ .ID }}"
-                                    class="w-full border rounded p-1 text-xs bg-white">
-                                <option value="0" selected>Select...</option>
-                                {{ range $.Materials }}
-                                <option value="{{ .ID }}">{{ .Name }}</option>
+                        {{ if eq .Shape "Fixed" }}
+                            <td colspan="4" class="p-1 border-r bg-gray-50 text-center text-gray-400 text-xs italic">Standard Item</td>
+                            <td colspan="3" class="p-1 border-r bg-white">
+                                <input type="number" step="1" name="manual_price" placeholder="Unit Price ₹" form="row-form-{{ .ID }}" 
+                                       class="w-full border-2 border-blue-200 rounded p-1 text-center font-bold text-blue-800"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                            </td>
+                            <td class="bg-gray-50"></td> <td class="bg-gray-50"></td> <td class="bg-gray-50"></td> <td class="bg-gray-50 border-r"></td>
+                        {{ else }}
+                            <td class="p-1 border-r">
+                                <select name="material_id" form="row-form-{{ .ID }}"
+                                        hx-post="/calculate" hx-trigger="change" 
+                                        hx-include="#row-form-{{ .ID }}" 
+                                        hx-target="#cost-val-{{ .ID }}"
+                                        class="w-full border rounded p-1 text-xs bg-white">
+                                    <option value="0" selected>Select...</option>
+                                    {{ range $.Materials }}
+                                    <option value="{{ .ID }}">{{ .Name }}</option>
+                                    {{ end }}
+                                </select>
+                            </td>
+
+                            <td class="p-1"><input type="number" step="0.1" name="length" placeholder="L" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            
+                            <td class="p-1"><input type="number" step="0.1" name="width" placeholder="{{ if eq .Shape "Cylindrical" }}Dia{{ else }}W{{ end }}" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            
+                            <td class="p-1 border-r">
+                                {{ if eq .Shape "Cylindrical" }}
+                                    <input type="hidden" name="height" value="0" form="row-form-{{ .ID }}">
+                                    <div class="text-center text-gray-300">-</div>
+                                {{ else }}
+                                    <input type="number" step="0.1" name="height" placeholder="H" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                           hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
                                 {{ end }}
-                            </select>
-                        </td>
+                            </td>
 
-                        <td class="p-1"><input type="number" step="0.1" name="length" placeholder="0" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
-                        <td class="p-1"><input type="number" step="0.1" name="width" placeholder="0" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
-                        <td class="p-1 border-r"><input type="number" step="0.1" name="height" placeholder="0" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"></td>
+                            <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
+                                <div id="weight-div-{{ .ID }}">-</div>
+                            </td>
+                            <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
+                                <div id="area-div-{{ .ID }}">-</div>
+                            </td>
+                            
+                            <td class="p-2 text-center bg-orange-50 border-r align-middle">
+                                <div class="flex flex-col items-center justify-center">
+                                    <input type="checkbox" name="include_squaring" value="true" checked 
+                                           form="row-form-{{ .ID }}"
+                                           hx-post="/calculate" hx-trigger="change" 
+                                           hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"
+                                           class="mb-1 w-4 h-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer">
+                                    <div id="pre-mach-div-{{ .ID }}" class="text-orange-800 font-bold font-mono text-xs">-</div>
+                                </div>
+                            </td>
 
-                        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-                            <div id="weight-div-{{ .ID }}">-</div>
-                        </td>
-                        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-                            <div id="area-div-{{ .ID }}">-</div>
-                        </td>
-                        <td class="p-2 text-center font-bold text-orange-700 bg-orange-50 font-mono text-xs border-r">
-                            <div id="pre-mach-div-{{ .ID }}">-</div>
-                        </td>
-                        <td class="p-2 text-center font-bold text-red-700 bg-red-50 font-mono text-xs border-r">
-                            <div id="ht-div-{{ .ID }}">-</div>
-                        </td>
+                            <td class="p-2 text-center bg-red-50 border-r align-middle">
+                                <div class="flex flex-col items-center justify-center">
+                                    <input type="checkbox" name="include_ht" value="true" checked 
+                                           form="row-form-{{ .ID }}"
+                                           hx-post="/calculate" hx-trigger="change" 
+                                           hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}"
+                                           class="mb-1 w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300 rounded cursor-pointer">
+                                    <div id="ht-div-{{ .ID }}" class="text-red-800 font-bold font-mono text-xs">-</div>
+                                </div>
+                            </td>
 
-                        <td class="p-1 align-top bg-white">
-                            <input type="number" step="0.5" name="cnc_hours" placeholder="Hrs" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                            <div id="cnc-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
-                        </td>
-
-                        <td class="p-1 align-top bg-white">
-                            <input type="number" step="1" name="wirecut_len" placeholder="mm" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                            <div id="wire-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
-                        </td>
-                        
-                        <td class="p-1 align-top border-r bg-white">
-                            <input type="number" step="100" name="drilling_cost" placeholder="₹" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
-                                   hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
-                        </td>
+                            <td class="p-1 align-top bg-white">
+                                <input type="number" step="0.5" name="cnc_hours" placeholder="Hrs" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                <div id="cnc-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
+                            </td>
+                            <td class="p-1 align-top bg-white">
+                                <input type="number" step="1" name="wirecut_len" placeholder="mm" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                                <div id="wire-cost-div-{{ .ID }}" class="text-xs text-gray-400 mt-1 text-center font-mono">-</div>
+                            </td>
+                            <td class="p-1 align-top border-r bg-white">
+                                <input type="number" step="100" name="drilling_cost" placeholder="₹" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center"
+                                       hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
+                            </td>
+                        {{ end }}
 
                         <td class="p-1 border-r bg-white">
                             <input type="number" name="quantity" value="1" form="row-form-{{ .ID }}" class="w-full border rounded p-1 text-center font-bold text-blue-600"
                                    hx-post="/calculate" hx-trigger="change, input delay:300ms" hx-include="#row-form-{{ .ID }}" hx-target="#cost-val-{{ .ID }}">
                         </td>
 
-                        <td class="p-2 text-right font-bold text-green-700 bg-green-50 shadow-inner flex flex-col justify-between h-full">
+                        <td class="p-2 text-right font-bold text-green-700 bg-green-50 shadow-inner flex flex-col justify-between h-full min-h-[60px]">
                             <span id="cost-val-{{ .ID }}" class="row-total block mb-1">₹0.00</span>
                             <button hx-delete="/component/remove" hx-target="closest tr" hx-swap="outerHTML" 
                                     class="text-[10px] text-red-400 hover:text-red-600 uppercase tracking-wider font-semibold self-end">

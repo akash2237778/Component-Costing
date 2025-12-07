@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"time"
@@ -11,13 +12,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// --- STRUCTS ---
 type CalcRequest struct {
-	ComponentID  int     `form:"component_id"`
-	MaterialID   int     `form:"material_id"`
-	Length       float64 `form:"length"`
-	Width        float64 `form:"width"`
-	Height       float64 `form:"height"`
+	ComponentID int    `form:"component_id"`
+	Shape       string `form:"shape"`
+	MaterialID  int    `form:"material_id"`
+
+	// INPUTS IN MM
+	Length float64 `form:"length"`
+	Width  float64 `form:"width"`
+	Height float64 `form:"height"`
+
+	ManualPrice float64 `form:"manual_price"`
+
+	IncludeSquaring bool `form:"include_squaring"`
+	IncludeHT       bool `form:"include_ht"`
+
 	Quantity     int     `form:"quantity"`
 	CNCHours     float64 `form:"cnc_hours"`
 	WireCutLen   float64 `form:"wirecut_len"`
@@ -48,13 +57,13 @@ func main() {
 		var s Settings
 		database.DB.QueryRow("SELECT cnc_rate_hourly, wirecut_rate_mm, squaring_rate_sqinch, ht_rate FROM settings WHERE id=1").Scan(&s.CNCRate, &s.WireCutRate, &s.SquaringRate, &s.HTRate)
 
-		rows, _ := database.DB.Query("SELECT id, name FROM component_templates ORDER BY display_order")
+		rows, _ := database.DB.Query("SELECT id, name, shape FROM component_templates ORDER BY display_order")
 		var components []map[string]interface{}
 		for rows.Next() {
 			var id int
-			var name string
-			rows.Scan(&id, &name)
-			components = append(components, map[string]interface{}{"ID": id, "Name": name})
+			var name, shape string
+			rows.Scan(&id, &name, &shape)
+			components = append(components, map[string]interface{}{"ID": id, "Name": name, "Shape": shape})
 		}
 
 		matRows, _ := database.DB.Query("SELECT id, name FROM materials")
@@ -73,11 +82,8 @@ func main() {
 		})
 	})
 
-	// --- 2. ROW MANAGEMENT (Add/Remove) ---
-
-	// Add New Row (Returns HTML Fragment)
+	// --- 2. ROW MANAGEMENT ---
 	r.GET("/component/add", func(c *gin.Context) {
-		// Generate a random ID for the new row (1000+) to avoid conflict with DB IDs
 		rand.Seed(time.Now().UnixNano())
 		newID := rand.Intn(90000) + 1000
 
@@ -90,30 +96,22 @@ func main() {
 			materials = append(materials, map[string]interface{}{"ID": id, "Name": name})
 		}
 
-		// Render a single row using the index.html logic (we use a template block/fragment trick or just raw HTML)
-		// For simplicity in Gin without partials, we construct the map and render a dedicated fragment template.
-		// NOTE: Since we are using standard LoadHTMLGlob, we need a separate file for the row or inline it.
-		// Let's assume we use a "row_fragment.html" or we just serve the logic here.
-		// For simplicity, we will create a map and render "row.html"
-
 		c.HTML(http.StatusOK, "row.html", gin.H{
 			"ID":        newID,
 			"Name":      "New Component",
+			"Shape":     "Cuboid",
 			"Materials": materials,
 		})
 	})
 
-	// Remove Row
 	r.DELETE("/component/remove", func(c *gin.Context) {
-		// Just return empty string to remove element from DOM
 		c.String(http.StatusOK, "")
 	})
 
-	// --- 3. SETTINGS & ACTIONS ---
+	// --- 3. SETTINGS HANDLERS ---
 	r.GET("/settings", func(c *gin.Context) {
 		var s Settings
 		database.DB.QueryRow("SELECT cnc_rate_hourly, wirecut_rate_mm, squaring_rate_sqinch, ht_rate FROM settings WHERE id=1").Scan(&s.CNCRate, &s.WireCutRate, &s.SquaringRate, &s.HTRate)
-
 		matRows, _ := database.DB.Query("SELECT id, name, density_factor, rate_per_kg FROM materials")
 		var materials []Material
 		for matRows.Next() {
@@ -121,13 +119,8 @@ func main() {
 			matRows.Scan(&m.ID, &m.Name, &m.Density, &m.Rate)
 			materials = append(materials, m)
 		}
-
-		c.HTML(http.StatusOK, "settings.html", gin.H{
-			"Settings":  s,
-			"Materials": materials,
-		})
+		c.HTML(http.StatusOK, "settings.html", gin.H{"Settings": s, "Materials": materials})
 	})
-
 	r.POST("/settings/global", func(c *gin.Context) {
 		var s Settings
 		if err := c.ShouldBind(&s); err != nil {
@@ -136,7 +129,6 @@ func main() {
 		database.DB.Exec("UPDATE settings SET cnc_rate_hourly=?, wirecut_rate_mm=?, squaring_rate_sqinch=?, ht_rate=? WHERE id=1", s.CNCRate, s.WireCutRate, s.SquaringRate, s.HTRate)
 		c.Status(http.StatusOK)
 	})
-
 	r.POST("/settings/material/update", func(c *gin.Context) {
 		id := c.PostForm("id")
 		name := c.PostForm("name")
@@ -145,7 +137,6 @@ func main() {
 		database.DB.Exec("UPDATE materials SET name=?, density_factor=?, rate_per_kg=? WHERE id=?", name, density, rate, id)
 		c.Status(http.StatusOK)
 	})
-
 	r.POST("/settings/material/add", func(c *gin.Context) {
 		name := c.PostForm("name")
 		density := c.PostForm("density")
@@ -164,25 +155,59 @@ func main() {
 		var s Settings
 		database.DB.QueryRow("SELECT cnc_rate_hourly, wirecut_rate_mm, squaring_rate_sqinch, ht_rate FROM settings WHERE id=1").Scan(&s.CNCRate, &s.WireCutRate, &s.SquaringRate, &s.HTRate)
 
-		densityFactor := 0.1286
+		// Defaults (using Steel KG/MM3 now)
+		densityFactor := 0.00000785
 		ratePerKg := 0.0
 		if req.MaterialID > 0 {
 			database.DB.QueryRow("SELECT density_factor, rate_per_kg FROM materials WHERE id=?", req.MaterialID).Scan(&densityFactor, &ratePerKg)
 		}
 
-		// Math
-		volume := req.Length * req.Width * req.Height
-		weightKg := volume * densityFactor
-		rawMatCost := weightKg * ratePerKg
+		var volumeMM, surfaceAreaMM, surfaceAreaInch, weightKg, rawMatCost, squaringCost, htCost float64
 
-		surfaceArea := 2 * ((req.Length * req.Width) + (req.Length * req.Height) + (req.Width * req.Height))
-		squaringCost := surfaceArea * s.SquaringRate
+		if req.Shape == "Fixed" {
+			rawMatCost = req.ManualPrice
+			weightKg = 0
+			squaringCost = 0
+			htCost = 0
+		} else if req.Shape == "Cylindrical" {
+			// CYLINDER (Dimensions in MM)
+			radius := req.Width / 2.0
+			volumeMM = math.Pi * (radius * radius) * req.Length
+			surfaceAreaMM = (2 * math.Pi * radius * req.Length) + (2 * math.Pi * radius * radius)
 
-		htCost := weightKg * s.HTRate
+			weightKg = volumeMM * densityFactor // Direct MM calculation
+
+			// Squaring Rate is per Sq Inch, so we convert Area
+			surfaceAreaInch = surfaceAreaMM / 645.16
+
+			if req.IncludeSquaring {
+				squaringCost = surfaceAreaInch * s.SquaringRate
+			}
+			if req.IncludeHT {
+				htCost = weightKg * s.HTRate
+			}
+		} else {
+			// CUBOID (Dimensions in MM)
+			volumeMM = req.Length * req.Width * req.Height
+			surfaceAreaMM = 2 * ((req.Length * req.Width) + (req.Length * req.Height) + (req.Width * req.Height))
+
+			weightKg = volumeMM * densityFactor // Direct MM calculation
+
+			// Squaring Rate is per Sq Inch, so we convert Area
+			surfaceAreaInch = surfaceAreaMM / 645.16
+
+			if req.IncludeSquaring {
+				squaringCost = surfaceAreaInch * s.SquaringRate
+			}
+			if req.IncludeHT {
+				htCost = weightKg * s.HTRate
+			}
+		}
+
+		rawMatCost = weightKg * ratePerKg
 
 		cncCost := req.CNCHours * s.CNCRate
 		wireCutCost := req.WireCutLen * s.WireCutRate
-
 		qty := float64(req.Quantity)
 		if req.Quantity == 0 {
 			qty = 1.0
@@ -201,7 +226,7 @@ func main() {
             <div id="wire-cost-div-%d" hx-swap-oob="true" class="text-xs text-gray-400 mt-1 text-center font-mono">₹%.0f</div>
 		`, grandTotal,
 			req.ComponentID, weightKg,
-			req.ComponentID, surfaceArea,
+			req.ComponentID, surfaceAreaInch,
 			req.ComponentID, squaringCost,
 			req.ComponentID, htCost,
 			req.ComponentID, cncCost,
