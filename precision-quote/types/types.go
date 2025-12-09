@@ -1,5 +1,6 @@
 package types
 
+// CalcRequest holds form data
 type CalcRequest struct {
 	ComponentID     int     `form:"component_id"`
 	Shape           string  `form:"shape"`
@@ -16,7 +17,10 @@ type CalcRequest struct {
 	DrillingCost    float64 `form:"drilling_cost"`
 }
 
+// QuoteSubmission (JSON Payload)
 type QuoteSubmission struct {
+	QuoteID      int         `json:"quote_id"`     // 0 if new, ID if update
+	QuoteNumber  int         `json:"quote_number"` // 0 if new, existing # if update
 	CustomerName string      `json:"customer_name"`
 	ToolName     string      `json:"tool_name"`
 	GrandTotal   float64     `json:"grand_total"`
@@ -37,7 +41,7 @@ type QuoteItem struct {
 	IncludeHT       bool    `json:"include_ht"`
 }
 
-// ComponentUI is used to render the rows in index.html
+// ComponentUI for Rendering
 type ComponentUI struct {
 	ID              int
 	Name            string
@@ -52,7 +56,7 @@ type ComponentUI struct {
 	IncludeHT       bool
 	RowCost         float64
 
-	// NEW: Display fields for history loading
+	// Display fields
 	Weight      float64
 	Area        float64
 	PreMachCost float64

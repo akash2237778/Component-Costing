@@ -74,18 +74,20 @@ func createTables() {
 			shape TEXT DEFAULT 'Cuboid',
 			display_order INTEGER
 		);`,
+		// UPDATED QUOTES TABLE FOR VERSIONING
 		`CREATE TABLE IF NOT EXISTS quotes (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id INTEGER PRIMARY KEY AUTOINCREMENT, -- Internal ID (Unique for every version)
+			quote_number INTEGER,                 -- Public ID (Shared by all versions of same quote)
+			version INTEGER DEFAULT 1,            -- Version number (1, 2, 3...)
 			customer_name TEXT,
 			tool_name TEXT,
 			total_cost REAL,
 			created_by TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
-		// UPDATED QUOTE ITEMS SCHEMA
 		`CREATE TABLE IF NOT EXISTS quote_items (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			quote_id INTEGER,
+			quote_id INTEGER,                     -- Links to quotes.id (Internal ID)
 			component_name TEXT,
 			shape TEXT,
 			material_id INTEGER,
@@ -129,7 +131,7 @@ func seedData() {
 		}
 	}
 
-	// 3. SEED MATERIALS FROM YAML
+	// 3. SEED MATERIALS
 	var matCount int
 	DB.QueryRow("SELECT count(*) FROM materials").Scan(&matCount)
 	if matCount == 0 {
@@ -141,12 +143,11 @@ func seedData() {
 				DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES (?, ?, ?)", m.Name, m.Density, m.Rate)
 			}
 		} else {
-			// Defaults
 			DB.Exec("INSERT INTO materials (name, density_factor, rate_per_kg) VALUES ('D2 (HCHCr)', 0.00000785, 350.0)")
 		}
 	}
 
-	// 4. SEED COMPONENTS FROM YAML
+	// 4. SEED COMPONENTS
 	var compCount int
 	DB.QueryRow("SELECT count(*) FROM component_templates").Scan(&compCount)
 	if compCount == 0 {

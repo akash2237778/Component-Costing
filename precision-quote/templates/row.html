@@ -11,7 +11,6 @@
     
     {{ if eq .Component.Shape "Fixed" }}
         <td colspan="4" class="p-1 border-r bg-gray-50 text-center text-gray-400 text-xs italic">Standard Item</td>
-        
         <td colspan="3" class="p-1 border-r bg-white">
             <input type="number" step="1" name="manual_price" placeholder="Unit Price ₹" value="{{ if .Component.ManualPrice }}{{ .Component.ManualPrice }}{{ end }}" form="row-form-{{ .Component.ID }}" 
                    class="row-manual-price w-full border-2 border-blue-200 rounded p-1 text-center font-bold text-blue-800"
@@ -37,12 +36,8 @@
         <td class="p-1"><input type="number" name="width" placeholder="W" value="{{ if .Component.Width }}{{ .Component.Width }}{{ end }}" class="row-width w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}"></td>
         <td class="p-1 border-r"><input type="number" name="height" placeholder="H" value="{{ if .Component.Height }}{{ .Component.Height }}{{ end }}" class="row-height w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}"></td>
 
-        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-            <div id="weight-div-{{ .Component.ID }}">-</div>
-        </td>
-        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r">
-            <div id="area-div-{{ .Component.ID }}">-</div>
-        </td>
+        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r"><div id="weight-div-{{ .Component.ID }}">-</div></td>
+        <td class="p-2 text-center text-gray-500 bg-gray-50 font-mono text-xs border-r"><div id="area-div-{{ .Component.ID }}">-</div></td>
         
         <td class="p-2 text-center bg-orange-50 border-r align-middle">
             <div class="flex flex-col items-center">
@@ -62,24 +57,15 @@
             </div>
         </td>
 
-        <td class="p-1 bg-white">
-            <input type="number" name="cnc_hours" placeholder="Hrs" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}">
-            <div id="cnc-cost-div-{{ .Component.ID }}" class="text-xs text-center text-gray-400">-</div>
-        </td>
-        <td class="p-1 bg-white">
-            <input type="number" name="wirecut_len" placeholder="mm" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}">
-            <div id="wire-cost-div-{{ .Component.ID }}" class="text-xs text-center text-gray-400">-</div>
-        </td>
-        <td class="p-1 border-r bg-white">
-            <input type="number" name="drilling_cost" placeholder="₹" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}">
-        </td>
+        <td class="p-1 bg-white"><input type="number" name="cnc_hours" placeholder="Hrs" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}"><div id="cnc-cost-div-{{ .Component.ID }}" class="text-xs text-center text-gray-400 font-mono">-</div></td>
+        <td class="p-1 bg-white"><input type="number" name="wirecut_len" placeholder="mm" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}"><div id="wire-cost-div-{{ .Component.ID }}" class="text-xs text-center text-gray-400 font-mono">-</div></td>
+        <td class="p-1 border-r bg-white"><input type="number" name="drilling_cost" placeholder="₹" class="w-full border rounded p-1 text-center" oninput="saveDraft()" form="row-form-{{ .Component.ID }}" hx-post="/calculate" hx-trigger="keyup delay:400ms changed" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}"></td>
     {{ end }}
 
     <td class="p-1 border-r bg-white">
         <input type="number" name="quantity" value="{{ if .Component.Quantity }}{{ .Component.Quantity }}{{ else }}1{{ end }}" 
                class="row-qty w-full border rounded p-1 text-center font-bold text-blue-600" 
-               oninput="saveDraft()" 
-               form="row-form-{{ .Component.ID }}" 
+               oninput="saveDraft()" form="row-form-{{ .Component.ID }}" 
                hx-post="/calculate" hx-trigger="change, input delay:300ms" hx-include="#row-form-{{ .Component.ID }}" hx-target="#cost-val-{{ .Component.ID }}">
     </td>
 

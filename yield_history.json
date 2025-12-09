@@ -1,0 +1,28 @@
+[
+    {
+        "id": "20251209063852",
+        "timestamp": "2025-12-09 06:38",
+        "name": "1321",
+        "global_inputs": {
+            "y_pitch": 161.5,
+            "y_width": 163.0,
+            "y_thick": 0.2,
+            "y_density": 0.00786,
+            "y_deduction": 2.0
+        },
+        "components": [
+            {
+                "id": 0,
+                "outer": 20161.5181,
+                "n_count": 1,
+                "slot_types": 1,
+                "slots": [
+                    {
+                        "area": 7908.9038,
+                        "count": 1
+                    }
+                ]
+            }
+        ]
+    }
+]

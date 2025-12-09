@@ -3,6 +3,11 @@
 <head>
     <title>Quote History - PrecisionQuote</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Details Marker styling */
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen p-8">
 
@@ -14,39 +19,89 @@
             </a>
         </div>
 
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
             <table class="min-w-full text-left">
                 <thead class="bg-slate-800 text-white">
                     <tr>
-                        <th class="p-4">Quote #</th>
-                        <th class="p-4">Date</th>
-                        <th class="p-4">Customer</th>
+                        <th class="p-4 w-32">Quote #</th>
+                        <th class="p-4 w-20">Ver</th>
+                        <th class="p-4 w-32">Date</th>
+                        <th class="p-4 w-48">Customer</th>
                         <th class="p-4">Tool Name</th>
-                        <th class="p-4">Created By</th>
                         <th class="p-4 text-right">Total Cost</th>
-                        <th class="p-4 text-center">Action</th>
+                        <th class="p-4 text-center w-32">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {{ range .Quotes }}
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-4 font-mono text-gray-500">#{{ .ID }}</td>
-                        <td class="p-4 text-sm text-gray-600">{{ .Date.Format "02-Jan-2006" }}</td>
-                        <td class="p-4 font-bold text-slate-700">{{ .CustomerName }}</td>
-                        <td class="p-4 text-gray-700">{{ .ToolName }}</td>
-                        <td class="p-4 text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{{ .CreatedBy }}</span></td>
-                        <td class="p-4 text-right font-bold text-green-700">₹{{ printf "%.2f" .TotalCost }}</td>
-                        <td class="p-4 text-center space-x-2">
-                            <a href="/quotes/load/{{ .ID }}" class="text-blue-600 hover:text-blue-800 font-bold border border-blue-200 px-3 py-1 rounded hover:bg-blue-50 text-sm">
+                    {{ range .Groups }}
+                    
+                    <tr class="hover:bg-blue-50 bg-white">
+                        <td class="p-4 font-mono font-bold text-blue-600">
+                            {{ if .History }}
+                            <details class="group inline-block align-middle mr-2">
+                                <summary class="text-gray-400 hover:text-blue-600 transition transform group-open:rotate-90">
+                                    ▶
+                                </summary>
+                            </details>
+                            {{ end }}
+                            #{{ .Latest.QuoteNumber }}
+                        </td>
+                        <td class="p-4 text-xs font-bold text-white"><span class="bg-green-500 px-2 py-1 rounded">v{{ .Latest.Version }}</span></td>
+                        <td class="p-4 text-sm text-gray-600">{{ .Latest.Date.Format "02-Jan-06" }}</td>
+                        <td class="p-4 font-bold text-slate-700">{{ .Latest.CustomerName }}</td>
+                        <td class="p-4 text-gray-700 font-medium">{{ .Latest.ToolName }}</td>
+                        <td class="p-4 text-right font-bold text-green-700 text-lg">₹{{ printf "%.2f" .Latest.TotalCost }}</td>
+                        <td class="p-4 text-center">
+                            <a href="/quotes/load/{{ .Latest.ID }}" class="text-blue-600 hover:text-blue-800 font-bold border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-sm">
                                 📂 Load
                             </a>
                         </td>
                     </tr>
+
+                    {{ if .History }}
+                    <tr class="bg-gray-50 hidden"> </tr>
+                    {{ range .History }}
+                    <tr class="bg-gray-100 text-gray-500 text-sm border-l-4 border-l-gray-300 history-row-{{ $.Latest.QuoteNumber }} hidden transition-all">
+                        <td class="p-4 pl-12">↳</td>
+                        <td class="p-4">v{{ .Version }}</td>
+                        <td class="p-4">{{ .Date.Format "02-Jan-06" }}</td>
+                        <td class="p-4 text-gray-400">{{ .CustomerName }}</td>
+                        <td class="p-4 text-gray-400">{{ .ToolName }}</td>
+                        <td class="p-4 text-right">₹{{ printf "%.2f" .TotalCost }}</td>
+                        <td class="p-4 text-center">
+                            <a href="/quotes/load/{{ .ID }}" class="text-gray-500 hover:text-blue-600 underline text-xs">Rollback</a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                    {{ end }}
+
                     {{ end }}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <script>
+        document.querySelectorAll('summary').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.preventDefault(); // Stop default details behavior (since we aren't using details content)
+                
+                // Toggle arrow rotation
+                this.classList.toggle('rotate-90');
+                
+                // Find parent row, get the Quote Number from the text
+                // Text is like "▶ #1001"
+                const cellText = this.parentNode.parentNode.innerText;
+                const quoteNum = cellText.match(/#(\d+)/)[1];
+                
+                // Find all history rows for this number
+                const historyRows = document.querySelectorAll(`.history-row-${quoteNum}`);
+                historyRows.forEach(row => {
+                    row.classList.toggle('hidden');
+                });
+            });
+        });
+    </script>
 
 </body>
 </html>

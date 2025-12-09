@@ -52,12 +52,29 @@
     </div>
 
     <div class="px-6 py-4 bg-gray-50 border-b flex gap-4 items-center">
-        <input type="text" id="customer_name" placeholder="Customer Name" value="{{ .CustomerName }}" class="border p-2 rounded w-64 shadow-sm" oninput="saveDraft()">
-        <input type="text" id="tool_name" placeholder="Tool Name / Description" value="{{ .ToolName }}" class="border p-2 rounded w-96 shadow-sm" oninput="saveDraft()">
+        
+        <input type="hidden" id="quote_number" value="{{ .QuoteNumber }}"> <input type="hidden" id="is-load-mode" value="{{ .IsLoadMode }}">
+
+        {{ if .QuoteNumber }}
+        <div class="bg-blue-100 text-blue-800 px-3 py-2 rounded font-bold border border-blue-300 shadow-sm">
+            #{{ .QuoteNumber }} <span class="text-xs text-blue-600 bg-white px-1 rounded ml-1 border">v{{ .Version }}</span>
+        </div>
+        {{ end }}
+
+        {{ if .IsAdmin }}
+            <input type="text" id="customer_name" placeholder="Customer Name" value="{{ .CustomerName }}" 
+                   class="border p-2 rounded w-64 shadow-sm" oninput="saveDraft()">
+        {{ else }}
+            <div class="border p-2 rounded w-64 shadow-sm bg-gray-100 text-gray-400 italic cursor-not-allowed flex items-center px-3">
+                🔒 Customer Hidden
+            </div>
+            <input type="hidden" id="customer_name" value=""> 
+        {{ end }}
+
+        <input type="text" id="tool_name" placeholder="Tool Name / Description" value="{{ .ToolName }}" 
+               class="border p-2 rounded w-96 shadow-sm" oninput="saveDraft()">
         
         <span class="text-xs text-green-600 font-bold transition-opacity duration-500 opacity-0" id="save-indicator">✓ Draft Saved</span>
-        
-        <input type="hidden" id="is-load-mode" value="{{ .IsLoadMode }}">
     </div>
 
     <div class="flex-grow p-4 overflow-hidden">
@@ -210,8 +227,6 @@
 
         // 1. SAVE DRAFT
         function saveDraft() {
-            // STOP if we loaded a quote from history (IsLoadMode = true)
-            // We do NOT want to overwrite the "new quote" draft with an old historical quote
             if (document.getElementById('is-load-mode').value === "true") return;
 
             const draft = {
@@ -220,7 +235,6 @@
                 rows: {}
             };
 
-            // Select inputs by form attribute to catch them all (they are outside form tags)
             const inputs = document.querySelectorAll('input[form^="row-form-"], select[form^="row-form-"]');
             
             inputs.forEach(input => {
@@ -243,7 +257,6 @@
 
         // 2. RESTORE DRAFT
         function restoreDraft() {
-            // Stop if in Load Mode
             if (document.getElementById('is-load-mode').value === "true") return;
 
             const raw = localStorage.getItem(DRAFT_KEY);
@@ -259,8 +272,6 @@
                 
                 const formId = parts[0];   
                 const inputName = parts[1];
-
-                // Robust Selector: Find input linked to formId
                 const selector = `[form="${formId}"][name="${inputName}"]`;
                 const input = document.querySelector(selector);
                 
@@ -273,12 +284,11 @@
                 }
             });
 
-            // Trigger Recalculation for rows that have data
+            // Trigger Recalculation
             const uniqueForms = new Set();
             Object.keys(draft.rows).forEach(key => uniqueForms.add(key.split("__")[0]));
             
             uniqueForms.forEach(formId => {
-                // Try to find a 'length' input or 'manual_price' input to trigger update
                 const triggerSelector = `[form="${formId}"][name="length"], [form="${formId}"][name="manual_price"]`;
                 const trigger = document.querySelector(triggerSelector);
                 if(trigger && trigger.value) {
@@ -287,7 +297,6 @@
             });
         }
 
-        // 3. SUM TOTAL
         function updateGrandTotal() {
             let total = 0.0;
             document.querySelectorAll('.row-total').forEach(row => {
@@ -297,33 +306,26 @@
             document.getElementById('grand-total-display').innerText = total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
         }
 
-        // 4. SUBMIT TO SERVER
         async function saveQuote() {
             const customer = document.getElementById('customer_name').value;
             const tool = document.getElementById('tool_name').value;
+            const quoteNum = parseInt(document.getElementById('quote_number').value) || 0;
             
-            if(!customer || !tool) {
-                alert("Please enter Customer Name and Tool Name");
+            if(!tool) {
+                alert("Please enter Tool Name");
                 return;
             }
 
             const items = [];
             document.querySelectorAll('.item-row').forEach(row => {
-                // Scrape data from the row visually
                 const name = row.querySelector('.row-name').value;
                 const costText = row.querySelector('.row-total').innerText.replace(/[^\d.-]/g, '');
                 
-                // Only save active rows
                 if (parseFloat(costText) > 0) {
-                    // We need to fetch specific inputs carefully
-                    // Using querySelector inside row is risky because inputs are linked via ID, not nesting
-                    // BUT for gathering data for save, finding closest input inside 'td' works because they are visually nested
-                    
                     const formIdInput = row.querySelector('input[name="component_id"]');
                     if(!formIdInput) return;
                     const formId = formIdInput.form.id;
 
-                    // Helper to get value by name from the linked form
                     const getVal = (name) => {
                         const el = document.querySelector(`[form="${formId}"][name="${name}"]`);
                         return el ? el.value : null;
@@ -357,6 +359,7 @@
             const grandTotalText = document.getElementById('grand-total-display').innerText.replace(/[^\d.-]/g, '');
 
             const payload = {
+                quote_number: quoteNum,
                 customer_name: customer,
                 tool_name: tool,
                 grand_total: parseFloat(grandTotalText),
@@ -369,15 +372,17 @@
                 body: JSON.stringify(payload)
             });
 
+            const data = await res.json();
+
             if (res.ok) {
                 localStorage.removeItem(DRAFT_KEY);
                 window.location.href = "/history";
             } else {
-                alert("Failed to save");
+                // Show specific error message from server
+                alert("Save Failed: " + (data.error || "Unknown Error"));
             }
         }
 
-        // Initialize
         document.addEventListener("DOMContentLoaded", () => {
             setTimeout(restoreDraft, 150);
             updateGrandTotal();

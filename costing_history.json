@@ -1,0 +1,140 @@
+[
+    {
+        "id": "20251209150616",
+        "timestamp": "2025-12-09 15:06",
+        "tool_name": "AL-102517A Combo",
+        "common_inputs": {
+            "tool_ref_name": "AL-102517A Combo",
+            "yield_pct": 10.0,
+            "weight_per_stroke_g": 25.0,
+            "sheet_thickness": 0.5,
+            "tool_maint_rate": 0.03,
+            "rm_rate": 92.0,
+            "scrap_rate": 32.0,
+            "stroke_rate": 0.5,
+            "packing_rate": 2.0,
+            "transport_rate": 3.0,
+            "inventory_pct": 2.0,
+            "rejection_pct": 2.0,
+            "overhead_pct": 20.0,
+            "profit_pct": 12.0
+        },
+        "components_data": [
+            {
+                "name": "Stator",
+                "stack_height": 33.0,
+                "single_lam_weight_g": 13.14,
+                "rivet_unit_cost": 0.25,
+                "rivet_count": 0,
+                "rivet_manpower_cost": 0.7,
+                "pressing_cost": 1.0,
+                "opt_name": "Extra Process",
+                "opt_cost": 0.0,
+                "sheet_thickness": 0.5,
+                "lams_per_stack": 66.0,
+                "stack_weight_g": 867.24,
+                "stack_weight_kg": 0.86724,
+                "base_stack_cost": 656.6047488,
+                "rivet_total_cost": 0.7,
+                "tool_maint_cost": 1.98,
+                "stack_mfg_cost": 660.2847488000001,
+                "packing_cost": 1.73448,
+                "transport_cost": 2.6017200000000003,
+                "final_stack_cost": 664.6209488000001,
+                "pack_trans_total": 4.3362
+            }
+        ]
+    },
+    {
+        "id": "20251209115747",
+        "timestamp": "2025-12-09 11:57",
+        "tool_name": "AL-102517A Combo",
+        "common_inputs": {
+            "tool_ref_name": "AL-102517A Combo",
+            "yield_pct": 31.97,
+            "weight_per_stroke_g": 25.0,
+            "sheet_thickness": 0.5,
+            "tool_maint_rate": 0.03,
+            "rm_rate": 92.0,
+            "scrap_rate": 32.0,
+            "stroke_rate": 0.5,
+            "packing_rate": 2.0,
+            "transport_rate": 3.0,
+            "inventory_pct": 2.0,
+            "rejection_pct": 2.0,
+            "overhead_pct": 20.0,
+            "profit_pct": 12.0
+        },
+        "components_data": [
+            {
+                "name": "Stator",
+                "stack_height": 33.0,
+                "single_lam_weight_g": 13.14,
+                "rivet_unit_cost": 0.25,
+                "rivet_count": 0,
+                "rivet_manpower_cost": 0.7,
+                "pressing_cost": 1.0,
+                "opt_name": "Extra Process",
+                "opt_cost": 1.0,
+                "sheet_thickness": 0.5,
+                "lams_per_stack": 66.0,
+                "stack_weight_g": 867.24,
+                "stack_weight_kg": 0.86724,
+                "base_stack_cost": 241.80741039524557,
+                "rivet_total_cost": 0.7,
+                "tool_maint_cost": 1.98,
+                "stack_mfg_cost": 246.48741039524555,
+                "packing_cost": 1.73448,
+                "transport_cost": 2.6017200000000003,
+                "final_stack_cost": 250.82361039524554,
+                "pack_trans_total": 4.3362
+            }
+        ]
+    },
+    {
+        "id": "20251209115700",
+        "timestamp": "2025-12-09 11:57",
+        "tool_name": "AL-102517A Combo",
+        "common_inputs": {
+            "tool_ref_name": "AL-102517A Combo",
+            "yield_pct": 31.97,
+            "weight_per_stroke_g": 25.0,
+            "sheet_thickness": 0.5,
+            "tool_maint_rate": 0.03,
+            "rm_rate": 92.0,
+            "scrap_rate": 32.0,
+            "stroke_rate": 0.5,
+            "packing_rate": 2.0,
+            "transport_rate": 3.0,
+            "inventory_pct": 2.0,
+            "rejection_pct": 2.0,
+            "overhead_pct": 20.0,
+            "profit_pct": 12.0
+        },
+        "components_data": [
+            {
+                "name": "Stator",
+                "stack_height": 33.0,
+                "single_lam_weight_g": 13.14,
+                "rivet_unit_cost": 0.25,
+                "rivet_count": 0,
+                "rivet_manpower_cost": 0.7,
+                "pressing_cost": 1.0,
+                "opt_name": "Extra Process",
+                "opt_cost": 0.0,
+                "sheet_thickness": 0.5,
+                "lams_per_stack": 66.0,
+                "stack_weight_g": 867.24,
+                "stack_weight_kg": 0.86724,
+                "base_stack_cost": 241.80741039524557,
+                "rivet_total_cost": 0.7,
+                "tool_maint_cost": 1.98,
+                "stack_mfg_cost": 245.48741039524555,
+                "packing_cost": 1.73448,
+                "transport_cost": 2.6017200000000003,
+                "final_stack_cost": 249.82361039524554,
+                "pack_trans_total": 4.3362
+            }
+        ]
+    }
+]
